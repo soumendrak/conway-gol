@@ -703,6 +703,76 @@
       clearTimeout(timerId);
       timerId = null;
     }
+    encodeGridToURL();
+  }
+
+  // ─── URL-encoded grid state sharing ────────────────────────────
+  function encodeGridToURL() {
+    // Flatten grid rows into a single Uint8Array, compress via base64
+    const flat = new Uint8Array(rows * cols);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        flat[r * cols + c] = grid[r][c];
+      }
+    }
+    // Convert to binary string then base64
+    let binary = '';
+    for (let i = 0; i < flat.length; i++) {
+      binary += String.fromCharCode(flat[i]);
+    }
+    const encoded = btoa(binary);
+    // Store cols/rows metadata (compact: 'cols,rows:base64')
+    const hash = cols + ',' + rows + ':' + encoded;
+    history.replaceState(null, '', '#' + hash);
+    toast('Pattern URL updated in address bar');
+  }
+
+  function decodeGridFromURL(hash) {
+    try {
+      // Format: "cols,rows:base64data"
+      const colonIdx = hash.indexOf(':');
+      if (colonIdx === -1) return false;
+      const dims = hash.substring(0, colonIdx).split(',');
+      const savedCols = parseInt(dims[0], 10);
+      const savedRows = parseInt(dims[1], 10);
+      if (isNaN(savedCols) || isNaN(savedRows)) return false;
+      const encoded = hash.substring(colonIdx + 1);
+      const binary = atob(encoded);
+      const expected = savedCols * savedRows;
+      if (binary.length !== expected) return false;
+
+      // If grid dimensions differ from saved, resize first
+      if (cols !== savedCols || rows !== savedRows) {
+        // Find matching grid size preset or custom
+        let sizeKey = null;
+        for (const [key, spec] of Object.entries(GRID_SIZES)) {
+          if (spec.cols === savedCols && spec.rows === savedRows) {
+            sizeKey = key;
+            break;
+          }
+        }
+        if (!sizeKey) {
+          toast('Grid size mismatch — cannot restore pattern');
+          return false;
+        }
+        setGridSize(sizeKey);
+      }
+
+      // Restore grid from binary
+      initGrid();
+      for (let i = 0; i < binary.length; i++) {
+        const r = Math.floor(i / savedCols);
+        const c = i % savedCols;
+        grid[r][c] = binary.charCodeAt(i);
+      }
+      generation = 0;
+      updateStats();
+      draw();
+      toast('Restored pattern from URL');
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   function runLoop() {
@@ -821,10 +891,17 @@
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   }
 
-  // ─── RAF draw loop fallback ────────────────────────────────────────
+  // ─── Check for URL hash on load ────────────────────────────────────
   // Initialization
   setGridSize('medium');
-  randomize(0.15);
+  if (window.location.hash && window.location.hash.length > 1) {
+    const decoded = decodeGridFromURL(window.location.hash.substring(1));
+    if (!decoded) {
+      randomize(0.15);
+    }
+  } else {
+    randomize(0.15);
+  }
 })();
 </script>
 </body>
