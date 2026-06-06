@@ -13,7 +13,7 @@
 
 A polished, single-file implementation of **Conway's Game of Life** — a zero-player cellular automaton where cells live, die, and reproduce according to four simple rules. Built with an HTML5 Canvas, dark theme, and orange glow aesthetics.
 
-**[→ Live Demo](https://your-username.github.io/conway-gol/)**
+**[→ Live Demo](https://soumendrak.github.io/conway-gol/)**
 
 ---
 
@@ -124,7 +124,7 @@ conway-gol/
 ### GitHub Pages
 
 ```bash
-git clone https://github.com/your-username/conway-gol.git
+git clone https://github.com/soumendrak/conway-gol.git
 cd conway-gol
 git checkout -b gh-pages
 git push origin gh-pages
